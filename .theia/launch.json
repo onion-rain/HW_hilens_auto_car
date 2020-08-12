@@ -1,0 +1,13 @@
+{
+    "version":"0.2.0",
+    "configurations":[
+        {
+            "type":"python",
+            "name":"Python: Terminal (integrated)",
+            "request":"launch",
+            "program":"${workspaceFolder}/start.py",
+            "console":"externalTerminal",
+            "pythonPath":"python3"
+        }
+    ]
+}
