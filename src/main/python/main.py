@@ -7,12 +7,16 @@ import cv2
 import time
 import hilens
 from utils import preprocess
+from utils import preprocess_with_pad
 from utils import get_result
+from utils import get_result_with_pad
 from utils import draw_boxes
 from utils import convert_to_json
 from utils import save_json_to_file
 from utils import label_transform
 
+pad = 0
+rgb = 0
 
 def run(work_path):
     # 系统初始化，参数要与创建技能时填写的检验值保持一致
@@ -53,15 +57,25 @@ def run(work_path):
             img_bgr = cv2.cvtColor(
                 input_yuv, cv2.COLOR_YUV2BGR_NV21)  # 转为BGR格式
 
-            img_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
+            if rgb:
+                img_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
+            else:
+                img_rgb = img_bgr
 
-            img_preprocess, img_w, img_h = preprocess(img_rgb)  # 缩放为模型输入尺寸
 
-            # 3. 模型推理 #####
-            output = driving_model.infer([img_preprocess.flatten()])
-            # output = driving_model.infer([img_preprocess])
-            # 4. 获取检测结果 #####
-            bboxes = get_result(output, img_w, img_h)
+            if pad:
+                img_preprocess, img_w, img_h, new_w, new_h, shift_x_ratio, shift_y_ratio = preprocess_with_pad(img_rgb)  # 缩放为模型输入尺寸
+                # 3. 模型推理 #####
+                output = driving_model.infer([img_preprocess.flatten()])
+                # 4. 获取检测结果 #####
+                bboxes = get_result_with_pad(output, img_w, img_h, new_w, new_h, shift_x_ratio, shift_y_ratio)
+            else:
+                img_preprocess, img_w, img_h = preprocess(img_rgb)  # 缩放为模型输入尺寸
+                # 3. 模型推理 #####
+                output = driving_model.infer([img_preprocess.flatten()])
+                # 4. 获取检测结果 #####
+                bboxes = get_result(output, img_w, img_h)
+
 
             bboxes = label_transform(bboxes)
 
@@ -72,7 +86,11 @@ def run(work_path):
 
             # 5-2. [调试用] 将结果输出到模拟器中 #####
 
-            img_bgr = cv2.cvtColor(img_rgb, cv2.COLOR_RGB2BGR)
+            if rgb:
+                img_bgr = cv2.cvtColor(img_rgb, cv2.COLOR_RGB2BGR)
+            else:
+                img_bgr = img_rgb
+            
 
             img_bgr = draw_boxes(img_bgr, bboxes)  # 在图像上画框
             output_yuv = hilens.cvt_color(img_bgr, hilens.BGR2YUV_NV21)
