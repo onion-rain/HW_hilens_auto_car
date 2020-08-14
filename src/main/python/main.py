@@ -17,6 +17,8 @@ from utils import label_transform
 
 pad = 0
 rgb = 0
+show_video = 0
+show_log = 0
 
 def run(work_path):
     # 系统初始化，参数要与创建技能时填写的检验值保持一致
@@ -34,11 +36,14 @@ def run(work_path):
     # model_path = os.path.join(work_path, 'model/yolo3_darknet53_raw0_0_terminal_t.om')
     # model_path = os.path.join(work_path, 'model/yolo3_darknet53_raw0_1_terminal_t.om')
     # model_path = os.path.join(work_path, 'model/yolo3_darknet53_raw1_rvh_terminal_t.om')
-    # model_path = os.path.join(work_path, 'model/yolo3_darknet53_raw1_rvhm_terminal_t.om')
+    model_path = os.path.join(work_path, 'model/yolo3_darknet53_raw1_rvhm_terminal_t.om')
     # model_path = os.path.join(work_path, 'model/yolo3_darknet53_raw1_terminal_t.om')
     # model_path = os.path.join(work_path, 'model/yolo3_darknet53_raw2_terminal_t.om')
     # model_path = os.path.join(work_path, 'model/yolo3_darknet53_raw3_terminal_t.om')
-    model_path = os.path.join(work_path, 'model/yolo3_darknet53_raw3_rvhm_terminal_t.om')
+    # model_path = os.path.join(work_path, 'model/yolo3_darknet53_raw3_rvhm_terminal_t.om')
+    # model_path = os.path.join(work_path, 'model/yolo3_darknet53_raw3_rvhmc_terminal_t.om')
+    # model_path = os.path.join(work_path, 'model/yolo3_darknet53_raw3_rvhm_150_terminal_t.om')
+    
     driving_model = hilens.Model(model_path)
 
     frame_index = 0
@@ -54,14 +59,10 @@ def run(work_path):
             input_yuv = camera.read()  # 读取一帧图片(YUV NV21格式)
 
             # 2. 数据预处理 #####
-            img_bgr = cv2.cvtColor(
-                input_yuv, cv2.COLOR_YUV2BGR_NV21)  # 转为BGR格式
-
             if rgb:
-                img_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
+                img_rgb = cv2.cvtColor(input_yuv, cv2.COLOR_YUV2RGB_NV21)  # 转为RGB格式
             else:
-                img_rgb = img_bgr
-
+                img_rgb = cv2.cvtColor(input_yuv, cv2.COLOR_YUV2BGR_NV21)  # 转为BGR格式
 
             if pad:
                 img_preprocess, img_w, img_h, new_w, new_h, shift_x_ratio, shift_y_ratio = preprocess_with_pad(img_rgb)  # 缩放为模型输入尺寸
@@ -85,18 +86,17 @@ def run(work_path):
                 json_bbox_list.append(json_bbox)
 
             # 5-2. [调试用] 将结果输出到模拟器中 #####
-
-            if rgb:
-                img_bgr = cv2.cvtColor(img_rgb, cv2.COLOR_RGB2BGR)
-            else:
-                img_bgr = img_rgb
-            
-
-            img_bgr = draw_boxes(img_bgr, bboxes)  # 在图像上画框
-            output_yuv = hilens.cvt_color(img_bgr, hilens.BGR2YUV_NV21)
-            display.show(output_yuv)  # 显示到屏幕上
-            time_frame = 1000 * (time.time() - time_start)
-            hilens.info('----- time_frame = %.2fms -----' % time_frame)
+            if show_video:
+                if rgb:
+                    img_bgr = cv2.cvtColor(img_rgb, cv2.COLOR_RGB2BGR)
+                else:
+                    img_bgr = img_rgb
+                img_bgr = draw_boxes(img_bgr, bboxes)  # 在图像上画框
+                output_yuv = hilens.cvt_color(img_bgr, hilens.BGR2YUV_NV21)
+                display.show(output_yuv)  # 显示到屏幕上
+            if show_log:
+                time_frame = 1000 * (time.time() - time_start)
+                hilens.info('----- time_frame = %.2fms -----' % time_frame)
 
         except RuntimeError:
             print('last frame')
