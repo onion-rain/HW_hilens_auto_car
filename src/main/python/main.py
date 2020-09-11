@@ -2,10 +2,12 @@
 # !/usr/bin/python3
 # SkillFramework 0.2.2 python demo
 
+import argparse
 import os
 import cv2
 import time
 import hilens
+
 from utils import preprocess
 from utils import preprocess_with_pad
 from utils import get_result
@@ -15,10 +17,42 @@ from utils import convert_to_json
 from utils import save_json_to_file
 from utils import label_transform
 
-pad = 0
-rgb = 0
-show_video = 0
-show_log = 0
+from rec_video import rec_video
+from socket_config import socket_init
+from socket_config import socketSendMsg
+from socket_config import socketencode
+from socket import *
+import _thread
+# from socket import socketSendMsg
+
+
+parser = argparse.ArgumentParser(description='auto car')
+parser.add_argument('--pad', action='store_true')
+parser.add_argument('--rgb', action='store_true')
+parser.add_argument('--show', action='store_true')
+parser.add_argument('--log', action='store_true')
+parser.add_argument('--rec', action='store_true')
+parser.add_argument('--socket', action='store_true')
+args = parser.parse_args()
+
+print(args)
+
+pad = args.pad
+rgb = 1
+show = args.show
+log = args.log
+rec = args.rec
+socket_use = args.socket
+
+# pad = 0
+# rgb = 1
+# show = 1
+# log = 1
+# socket_use = 0
+# rec = 0
+
+labelname = []
+
 
 def run(work_path):
     # 系统初始化，参数要与创建技能时填写的检验值保持一致
@@ -28,10 +62,18 @@ def run(work_path):
     # hilens studio中VideoCapture如果不填写参数，则默认读取test/camera0.mp4文件，
     # 在hilens kit中不填写参数则读取本地摄像头
     camera = hilens.VideoCapture()
+
     display = hilens.Display(hilens.HDMI)
 
+    connection = 0
+    if socket_use:
+        connection = socket_init()
+
+    if rec:
+        rec_video(camera, display, show)
+
     # 初始化模型
-# -*- coding: utf-8 -*-
+    # -*- coding: utf-8 -*-
     # model_path = os.path.join(work_path, 'model/driving_model.om')
     # model_path = os.path.join(work_path, 'model/yolo3_darknet53_raw0_0_terminal_t.om')
     # model_path = os.path.join(work_path, 'model/yolo3_darknet53_raw0_1_terminal_t.om')
@@ -43,7 +85,7 @@ def run(work_path):
     # model_path = os.path.join(work_path, 'model/yolo3_darknet53_raw3_rvhm_terminal_t.om')
     # model_path = os.path.join(work_path, 'model/yolo3_darknet53_raw3_rvhmc_terminal_t.om')
     # model_path = os.path.join(work_path, 'model/yolo3_darknet53_raw3_rvhm_150_terminal_t.om')
-    
+
     driving_model = hilens.Model(model_path)
 
     frame_index = 0
@@ -77,24 +119,31 @@ def run(work_path):
                 # 4. 获取检测结果 #####
                 bboxes = get_result(output, img_w, img_h)
 
-
             bboxes = label_transform(bboxes)
 
             # 5-1. [比赛提交作品用] 将结果输出到json文件中 #####
             if len(bboxes) > 0:
                 json_bbox = convert_to_json(bboxes, frame_index)
                 json_bbox_list.append(json_bbox)
+            # if bboxes != []:
+            #     print()
 
-            # 5-2. [调试用] 将结果输出到模拟器中 #####
-            if show_video:
+            if socket_use:
+                labelname = [i[4] for i in bboxes]
+                data = socketencode(labelname)
+                socketSendMsg(connection, data)  # 传输labelname
+                # labelname = [i[4] for i in bboxes]
+
+            # 5-2. [调试用] 将结果输出到display #####
+            if show:
                 if rgb:
                     img_bgr = cv2.cvtColor(img_rgb, cv2.COLOR_RGB2BGR)
                 else:
                     img_bgr = img_rgb
-                img_bgr = draw_boxes(img_bgr, bboxes)  # 在图像上画框
+                img_bgr, labelName = draw_boxes(img_bgr, bboxes)  # 在图像上画框     
                 output_yuv = hilens.cvt_color(img_bgr, hilens.BGR2YUV_NV21)
                 display.show(output_yuv)  # 显示到屏幕上
-            if show_log:
+            if log:
                 time_frame = 1000 * (time.time() - time_start)
                 hilens.info('----- time_frame = %.2fms -----' % time_frame)
 
@@ -107,9 +156,10 @@ def run(work_path):
     result_filename = './result.json'
     json_data['result'] = json_bbox_list
     save_json_to_file(json_data, result_filename)
-
     hilens.terminate()
 
 
 if __name__ == "__main__":
+    # if socket_use:
+    #     _thread.start_new_thread(socketSendMsg, (socket_3399, labelname), {'id': 2})
     run(os.getcwd())

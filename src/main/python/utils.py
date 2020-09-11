@@ -272,11 +272,13 @@ def save_json_to_file(json_data, result_filename):
         json.dump(json_data, f)
 
 
-# 在图中画出检测框，输出类别信息
+# 在图中画出检测框，输出类别信息 
+# 新增加了功能，返回标签名
 def draw_boxes(img_data, bboxes):
     thickness = 2
     font_scale = 1
     text_font = cv2.FONT_HERSHEY_SIMPLEX
+    labelName = ""
     for bbox in bboxes:
         label = int(bbox[4])
         x_min = int(bbox[0])
@@ -287,5 +289,15 @@ def draw_boxes(img_data, bboxes):
                       (x_max, y_max), colors[label], thickness)
         cv2.putText(img_data, class_names[label], (x_min, y_min+25),
                     text_font, font_scale, colors[label], thickness)
+        labelName = class_names[label]
 
-    return img_data
+    return img_data,labelName
+    
+def socketSendMsg(socketObj, labelName):
+    try:
+        connection, address = socketObj.accept() # Socket ACCept
+        connection.send(labelName.encode("utf-8")) #Socket Send
+        print("Sent: ",  labelName)
+        connection.close
+    except:
+        pass
