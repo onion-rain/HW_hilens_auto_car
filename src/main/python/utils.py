@@ -26,28 +26,25 @@ net_w = 416
 # 5 -> 3
 
 def label_transform(bboxes):
-    for bbox in bboxes:
-        if bbox[4] == 0:
-            bbox[4] = 2
-        elif bbox[4] == 1:
-            bbox[4] = 4
-        elif bbox[4] == 2:
-            bbox[4] = 5
-            # bbox[4] = 3
-        elif bbox[4] == 3:
-            bbox[4] = 0
-        elif bbox[4] == 4:
-            bbox[4] = 1
-        elif bbox[4] == 5:
-            bbox[4] = 3
-            # bbox[4] = 5
-    
+    # for bbox in bboxes:
+    #     if bbox[4] == 0:
+    #         bbox[4] = 2
+    #     elif bbox[4] == 1:
+    #         bbox[4] = 4
+    #     elif bbox[4] == 2:
+    #         bbox[4] = 5
+    #         # bbox[4] = 3
+    #     elif bbox[4] == 3:
+    #         bbox[4] = 0
+    #     elif bbox[4] == 4:
+    #         bbox[4] = 1
+    #     elif bbox[4] == 5:
+    #         bbox[4] = 3
+    #         # bbox[4] = 5
     return bboxes
 
-class_names = ["speed_limited", "speed_unlimited", "green_go",
-               "yellow_back", "pedestrian_crossing", "red_stop"] # official
-# class_names = ["green_go", "pedestrian_crossing", "red_stop",
-#                "speed_limited", "speed_unlimited", "yellow_back"]
+class_names = ["center_wall", "green_go", "red_stop",
+               "sidewalk", "speed_limit", "speed_unlimit", "yellow_back"]
 class_num = len(class_names)
 
 # 检测模型的anchors，用于解码出检测框
@@ -62,7 +59,7 @@ conf_threshold = 0.3
 iou_threshold = 0.4
 
 colors = [(0, 0, 127), (255, 255, 0), (0, 255, 0),
-          (0, 255, 255), (255, 0, 255), (0, 0, 255)]
+          (0, 255, 255), (255, 0, 255), (0, 0, 255), (127, 0, 127)]
 
 
 # 图片预处理：缩放到模型输入尺寸

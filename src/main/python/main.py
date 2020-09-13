@@ -21,9 +21,7 @@ from rec_video import rec_video
 from socket_config import socket_init
 from socket_config import socketSendMsg
 from socket_config import socketencode
-from socket import *
-import _thread
-# from socket import socketSendMsg
+import threading
 
 
 parser = argparse.ArgumentParser(description='auto car')
@@ -44,12 +42,12 @@ log = args.log
 rec = args.rec
 socket_use = args.socket
 
-# pad = 0
+# pad = 1
 # rgb = 1
-# show = 1
-# log = 1
-# socket_use = 0
-# rec = 0
+show = 1
+log = 1
+# socket_use = 1
+# rec = 1
 
 labelname = []
 
@@ -62,29 +60,27 @@ def run(work_path):
     # hilens studio中VideoCapture如果不填写参数，则默认读取test/camera0.mp4文件，
     # 在hilens kit中不填写参数则读取本地摄像头
     camera = hilens.VideoCapture()
+    # camera = hilens.VideoCapture("test/new.mp4")
 
     display = hilens.Display(hilens.HDMI)
 
-    connection = 0
-    if socket_use:
-        connection = socket_init()
+    # connection = 0
+    # if socket_use:
+    #     socket_3399 = socket_init()
+    #     socket_3399.listen()  # Socket ACCept
+    #     connection, _ = socket_3399.accept()
 
     if rec:
         rec_video(camera, display, show)
-
+    global labelname
     # 初始化模型
     # -*- coding: utf-8 -*-
-    # model_path = os.path.join(work_path, 'model/driving_model.om')
-    # model_path = os.path.join(work_path, 'model/yolo3_darknet53_raw0_0_terminal_t.om')
-    # model_path = os.path.join(work_path, 'model/yolo3_darknet53_raw0_1_terminal_t.om')
-    # model_path = os.path.join(work_path, 'model/yolo3_darknet53_raw1_rvh_terminal_t.om')
-    model_path = os.path.join(work_path, 'model/yolo3_darknet53_raw1_rvhm_terminal_t.om')
-    # model_path = os.path.join(work_path, 'model/yolo3_darknet53_raw1_terminal_t.om')
-    # model_path = os.path.join(work_path, 'model/yolo3_darknet53_raw2_terminal_t.om')
-    # model_path = os.path.join(work_path, 'model/yolo3_darknet53_raw3_terminal_t.om')
+    # model_path = os.path.join(work_path, 'model/yolo3_darknet53_new_raw0_terminal_t.om')
+    # model_path = os.path.join(work_path, 'model/yolo3_darknet53_new_raw0_rhmc_terminal_t.om')
+    model_path = os.path.join(work_path, 'model/yolo3_darknet53_new_raw1_rhmc_terminal_t.om')
+    # model_path = os.path.join(work_path, 'model/yolo3_darknet53_raw1_rvhm_terminal_t.om')
     # model_path = os.path.join(work_path, 'model/yolo3_darknet53_raw3_rvhm_terminal_t.om')
     # model_path = os.path.join(work_path, 'model/yolo3_darknet53_raw3_rvhmc_terminal_t.om')
-    # model_path = os.path.join(work_path, 'model/yolo3_darknet53_raw3_rvhm_150_terminal_t.om')
 
     driving_model = hilens.Model(model_path)
 
@@ -120,19 +116,21 @@ def run(work_path):
                 bboxes = get_result(output, img_w, img_h)
 
             bboxes = label_transform(bboxes)
-
             # 5-1. [比赛提交作品用] 将结果输出到json文件中 #####
             if len(bboxes) > 0:
                 json_bbox = convert_to_json(bboxes, frame_index)
                 json_bbox_list.append(json_bbox)
             # if bboxes != []:
             #     print()
+            labelname = [i[4] for i in bboxes]
 
-            if socket_use:
-                labelname = [i[4] for i in bboxes]
-                data = socketencode(labelname)
-                socketSendMsg(connection, data)  # 传输labelname
-                # labelname = [i[4] for i in bboxes]
+            # if socket_use:
+            #     # connection, _ = socket_3399.accept()
+            #     if len(connection.recv(1024)) == 0:
+            #         connection, _ = socket_3399.accept()
+            #     labelname = [i[4] for i in bboxes]
+            #     data = socketencode(labelname)
+            #     socketSendMsg(connection, data)  # 传输labelname]
 
             # 5-2. [调试用] 将结果输出到display #####
             if show:
@@ -140,7 +138,7 @@ def run(work_path):
                     img_bgr = cv2.cvtColor(img_rgb, cv2.COLOR_RGB2BGR)
                 else:
                     img_bgr = img_rgb
-                img_bgr, labelName = draw_boxes(img_bgr, bboxes)  # 在图像上画框     
+                img_bgr, labelName = draw_boxes(img_bgr, bboxes)  # 在图像上画框
                 output_yuv = hilens.cvt_color(img_bgr, hilens.BGR2YUV_NV21)
                 display.show(output_yuv)  # 显示到屏幕上
             if log:
@@ -159,7 +157,28 @@ def run(work_path):
     hilens.terminate()
 
 
+def socket_run():
+    global labelname
+    connection = 0
+    socket_3399 = socket_init()
+    socket_3399.listen()  # Socket ACCept
+    connection, _ = socket_3399.accept()
+    while True:
+        try:
+            connection.recv(1024)
+            data = socketencode(labelname)
+            socketSendMsg(connection, data)
+        except ConnectionResetError:
+            connection, _ = socket_3399.accept()
+
+
+def my_main():
+    # run(os.getcwd())
+    thread1 = threading.Thread(target=run, args=(os.getcwd(), ))
+    thread2 = threading.Thread(target=socket_run)
+    thread1.start()
+    thread2.start()
+
+
 if __name__ == "__main__":
-    # if socket_use:
-    #     _thread.start_new_thread(socketSendMsg, (socket_3399, labelname), {'id': 2})
-    run(os.getcwd())
+    my_main()
