@@ -7,6 +7,7 @@ import os
 import cv2
 import time
 import hilens
+import json
 
 from utils import preprocess
 from utils import preprocess_with_pad
@@ -15,12 +16,11 @@ from utils import get_result_with_pad
 from utils import draw_boxes
 from utils import convert_to_json
 from utils import save_json_to_file
-from utils import label_transform
 
 from rec_video import rec_video
 from socket_config import socket_init
 from socket_config import socketSendMsg
-from socket_config import socketencode
+from socket_config import data_generate_2
 import threading
 
 
@@ -46,10 +46,13 @@ socket_use = args.socket
 # rgb = 1
 show = 1
 log = 1
-# socket_use = 1
+socket_use = 1
 # rec = 1
 
 labelname = []
+data = '404'
+# class_names = ["center_wall", "green_go", "red_stop",
+#                "sidewalk", "speed_limit", "speed_unlimit", "yellow_back"]
 
 
 def run(work_path):
@@ -64,23 +67,21 @@ def run(work_path):
 
     display = hilens.Display(hilens.HDMI)
 
-    # connection = 0
-    # if socket_use:
-    #     socket_3399 = socket_init()
-    #     socket_3399.listen()  # Socket ACCept
-    #     connection, _ = socket_3399.accept()
+    global labelname
+    global data
 
     if rec:
         rec_video(camera, display, show)
-    global labelname
+
+
     # 初始化模型
     # -*- coding: utf-8 -*-
-    # model_path = os.path.join(work_path, 'model/yolo3_darknet53_new_raw0_terminal_t.om')
+    # model_path = os.path.join(work_path, 'model/yolo3_darknet53_new_raw3_rm_terminal_t.om')
+    model_path = os.path.join(work_path, 'model/yolo3_darknet53_new_raw3_terminal_t.om')
+    # model_path = os.path.join(work_path, 'model/yolo3_darknet53_new_raw2_terminal_t.om')
+    # model_path = os.path.join(work_path, 'model/yolo3_darknet53_new_raw1_rhmc_terminal_t.om')
     # model_path = os.path.join(work_path, 'model/yolo3_darknet53_new_raw0_rhmc_terminal_t.om')
-    model_path = os.path.join(work_path, 'model/yolo3_darknet53_new_raw1_rhmc_terminal_t.om')
-    # model_path = os.path.join(work_path, 'model/yolo3_darknet53_raw1_rvhm_terminal_t.om')
-    # model_path = os.path.join(work_path, 'model/yolo3_darknet53_raw3_rvhm_terminal_t.om')
-    # model_path = os.path.join(work_path, 'model/yolo3_darknet53_raw3_rvhmc_terminal_t.om')
+    # model_path = os.path.join(work_path, 'model/yolo3_darknet53_new_raw0_terminal_t.om')
 
     driving_model = hilens.Model(model_path)
 
@@ -114,15 +115,17 @@ def run(work_path):
                 output = driving_model.infer([img_preprocess.flatten()])
                 # 4. 获取检测结果 #####
                 bboxes = get_result(output, img_w, img_h)
-
-            bboxes = label_transform(bboxes)
+                # print()
+            # bboxes = label_transform(bboxes)
             # 5-1. [比赛提交作品用] 将结果输出到json文件中 #####
             if len(bboxes) > 0:
                 json_bbox = convert_to_json(bboxes, frame_index)
                 json_bbox_list.append(json_bbox)
             # if bboxes != []:
             #     print()
-            labelname = [i[4] for i in bboxes]
+            if socket_use:
+                data = data_generate_2(bboxes)
+            # labelname = [i[4] for i in bboxes]
 
             # if socket_use:
             #     # connection, _ = socket_3399.accept()
@@ -157,27 +160,33 @@ def run(work_path):
     hilens.terminate()
 
 
-def socket_run():
+def socket_run():  # 修改了socket_accept函数
     global labelname
+    global data
     connection = 0
     socket_3399 = socket_init()
     socket_3399.listen()  # Socket ACCept
     connection, _ = socket_3399.accept()
+    socketSendMsg(connection, data)
+    # connection = socket_accept(socket_3399, labelname)
     while True:
         try:
             connection.recv(1024)
-            data = socketencode(labelname)
+            # data = socketencode(labelname)
             socketSendMsg(connection, data)
         except ConnectionResetError:
+            # connection = socket_accept(socket_3399, labelname)
             connection, _ = socket_3399.accept()
+            socketSendMsg(connection, data)
 
 
 def my_main():
-    # run(os.getcwd())
-    thread1 = threading.Thread(target=run, args=(os.getcwd(), ))
-    thread2 = threading.Thread(target=socket_run)
-    thread1.start()
-    thread2.start()
+    # thread1 = threading.Thread(target=run, args=(os.getcwd(), ))
+    # thread1.start()
+    if socket_use:
+        thread2 = threading.Thread(target=socket_run)
+        thread2.start()
+    run(os.getcwd())
 
 
 if __name__ == "__main__":

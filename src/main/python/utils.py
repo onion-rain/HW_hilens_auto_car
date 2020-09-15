@@ -17,35 +17,14 @@ import numpy as np
 net_h = 416
 net_w = 416
 
-# 检测模型的类别
-# 0 -> 2
-# 1 -> 4
-# 2 -> 5
-# 3 -> 0
-# 4 -> 1
-# 5 -> 3
 
-def label_transform(bboxes):
-    # for bbox in bboxes:
-    #     if bbox[4] == 0:
-    #         bbox[4] = 2
-    #     elif bbox[4] == 1:
-    #         bbox[4] = 4
-    #     elif bbox[4] == 2:
-    #         bbox[4] = 5
-    #         # bbox[4] = 3
-    #     elif bbox[4] == 3:
-    #         bbox[4] = 0
-    #     elif bbox[4] == 4:
-    #         bbox[4] = 1
-    #     elif bbox[4] == 5:
-    #         bbox[4] = 3
-    #         # bbox[4] = 5
-    return bboxes
-
-class_names = ["center_wall", "green_go", "red_stop",
-               "sidewalk", "speed_limit", "speed_unlimit", "yellow_back"]
+class_names = ["wall", "green", "red", "sidewalk", "limit", "unlimit", "yellow"]
+class_thres = [0.3,    0.8,     0.8,   0.3,        0.8,     0.8,       0.8]
 class_num = len(class_names)
+
+# 检测框的输出阈值、NMS筛选阈值
+conf_threshold = 0.3  # 所有分类最低conf
+iou_threshold = 0.4
 
 # 检测模型的anchors，用于解码出检测框
 stride_list = [8, 16, 32]
@@ -54,12 +33,8 @@ anchors_2 = np.array([[30, 61], [62, 45],   [59, 119]]) / stride_list[1]
 anchors_3 = np.array([[116, 90], [156, 198], [163, 326]]) / stride_list[2]
 anchor_list = [anchors_1, anchors_2, anchors_3]
 
-# 检测框的输出阈值、NMS筛选阈值
-conf_threshold = 0.3
-iou_threshold = 0.4
-
-colors = [(0, 0, 127), (255, 255, 0), (0, 255, 0),
-          (0, 255, 255), (255, 0, 255), (0, 0, 255), (127, 0, 127)]
+colors = [(127, 127, 127), (0, 255, 0), (0, 0, 255),
+          (255, 255, 0), (255, 0, 255), (255, 0, 0), (0, 255, 255)]
 
 
 # 图片预处理：缩放到模型输入尺寸
@@ -67,6 +42,7 @@ def preprocess(img_data):
     h, w, c = img_data.shape
     new_image = cv2.resize(img_data, (net_w, net_h))
     return new_image, w, h
+
 
 def preprocess_with_pad(image, aipp_flag=True):
     img_h, img_w, img_c = image.shape
@@ -95,6 +71,7 @@ def preprocess_with_pad(image, aipp_flag=True):
 
     return new_image, img_w, img_h, new_w, new_h, shift_x_ratio, shift_y_ratio
 
+
 def overlap(x1, x2, x3, x4):
     left = max(x1, x3)
     right = min(x2, x4)
@@ -114,13 +91,34 @@ def cal_iou(box1, box2):
 
 
 # 使用NMS筛选检测框
-def apply_nms(all_boxes, thres):
+def apply_nms(all_boxes, iou_thres, cls_thres):
     res = []
 
     for cls in range(class_num):
         cls_bboxes = all_boxes[cls]
-        sorted_boxes = sorted(cls_bboxes, key=lambda d: d[5])[::-1]
-
+        cls = cls+1 if cls+1 < 7 else 0
+        if cls_bboxes == []:
+            continue
+        # else:
+        #     if cls == 0:
+        #         pass
+        #     elif cls == 1:
+        #         pass
+        #     elif cls == 2:
+        #         pass
+        #     elif cls == 3:
+        #         pass
+        #     elif cls == 4:
+        #         pass
+        #     elif cls == 5:
+        #         pass
+        #     elif cls == 6:
+        #         pass
+        conf_thres = cls_thres[cls]
+        keep_boxes = [box for box in cls_bboxes if box[-1] > conf_thres]
+        if len(keep_boxes) < len(cls_bboxes):
+            print()
+        sorted_boxes = sorted(keep_boxes, key=lambda d: d[5])[::-1]
         p = dict()
         for i in range(len(sorted_boxes)):
             if i in p:
@@ -132,7 +130,7 @@ def apply_nms(all_boxes, thres):
                     continue
                 box = sorted_boxes[j]
                 iou = cal_iou(box, truth)
-                if iou >= thres:
+                if iou >= iou_thres:
                     p[j] = 1
 
         for i in range(len(sorted_boxes)):
@@ -179,6 +177,7 @@ def decode_bbox(conv_output, anchors, img_w, img_h):
         all_boxes[box[4]-1].append(box)
 
     return all_boxes
+
 
 def decode_bbox_with_pad(conv_output, anchors, img_w, img_h, x_scale, y_scale, shift_x_ratio, shift_y_ratio):
     def _sigmoid(x):
@@ -228,11 +227,11 @@ def get_result(model_outputs, img_w, img_h):
         boxes = decode_bbox(pred, anchors, img_w, img_h)
         all_boxes = [all_boxes[iy] + boxes[iy] for iy in range(class_num)]
 
-    res = apply_nms(all_boxes, iou_threshold)
+    res = apply_nms(all_boxes, iou_threshold, class_thres)
     return res
 
-def get_result_with_pad(model_outputs, img_w, img_h, new_w, new_h, shift_x_ratio, shift_y_ratio):
 
+def get_result_with_pad(model_outputs, img_w, img_h, new_w, new_h, shift_x_ratio, shift_y_ratio):
     num_channel = 3 * (class_num + 5)
     x_scale = net_w / float(new_w)
     y_scale = net_h / float(new_h)
@@ -278,23 +277,36 @@ def draw_boxes(img_data, bboxes):
     labelName = ""
     for bbox in bboxes:
         label = int(bbox[4])
+        conf = float(bbox[5])
         x_min = int(bbox[0])
         y_min = int(bbox[1])
         x_max = int(bbox[2])
         y_max = int(bbox[3])
         cv2.rectangle(img_data, (x_min, y_min),
                       (x_max, y_max), colors[label], thickness)
-        cv2.putText(img_data, class_names[label], (x_min, y_min+25),
+        cv2.putText(img_data, class_names[label]+"_{:.2f}".format(conf), (x_min, y_min+25),
                     text_font, font_scale, colors[label], thickness)
         labelName = class_names[label]
 
-    return img_data,labelName
-    
-def socketSendMsg(socketObj, labelName):
-    try:
-        connection, address = socketObj.accept() # Socket ACCept
-        connection.send(labelName.encode("utf-8")) #Socket Send
-        print("Sent: ",  labelName)
-        connection.close
-    except:
-        pass
+    return img_data, labelName
+
+
+# def bboxes_limit(prediction, cls, num=1):
+#     """指定cls保留num个预测框, inplace操作
+#     args:
+#         prediction[batch, (x, y, x, y, object_confidence, class_score, class_pred)]
+#         cls: 类别
+#         num：bbox保留个数
+#     """
+#     for idx in range(len(prediction)):
+#         p = prediction[idx]
+#         if p is None:
+#             continue
+#         cls_ids = torch.where(p[:, -1] == cls)[0]
+#         othercls_ids = torch.where(p[:, -1] != cls)[0]
+#         if len(cls_ids) <= num:
+#             continue
+#         ids = torch.sort(p[cls_ids][:, 4]+p[cls_ids][:, 5], 0, )[1]
+#         keepcls_ids = cls_ids[ids[:num]]
+#         keep_ids = torch.cat((keepcls_ids, othercls_ids), 0)
+#         prediction[idx] = p[keep_ids]

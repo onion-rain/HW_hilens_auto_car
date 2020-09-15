@@ -5,15 +5,15 @@ import os
 
 
 def rec_video(cap, display, show):
-    if not os.path.exists("/tmp/video/"):
-        os.makedirs("/tmp/video/")
+    if not os.path.exists("/tmp/"):
+        os.makedirs("/tmp/")
     fps = 20
     size = (1280, 720)
     format = cv2.VideoWriter_fourcc('M', 'J', 'P', 'G')
     frame_num = fps*20
     i = 0
     while(1):
-        writer = cv2.VideoWriter("/tmp/video/test{}.avi".format(i), format, fps, size)
+        writer = cv2.VideoWriter("/tmp/test{}.avi".format(i), format, fps, size)
         for ix in range(frame_num):
             image = cap.read()
             img_bgr = cv2.cvtColor(image, cv2.COLOR_YUV2BGR_NV21)

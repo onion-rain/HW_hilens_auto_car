@@ -11,8 +11,9 @@ try:
         f.write(random_number)
 
     os.environ['RTMP_PATH'] = "rtmp://127.0.0.1/live/" + random_number
-    #os.chdir('src/main/python/')
-    main.run(work_path)
+    # os.chdir('src/main/python/')
+    main.my_main()
+    # main.run(work_path)
 finally:
     with open(os.path.join(work_path, '.hilens/rtmp.txt'), 'r+') as f:
         f.truncate()
