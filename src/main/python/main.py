@@ -7,20 +7,18 @@ import os
 import cv2
 import time
 import hilens
-import json
 
 from utils import preprocess
 from utils import preprocess_with_pad
 from utils import get_result
 from utils import get_result_with_pad
 from utils import draw_boxes
-from utils import convert_to_json
 from utils import save_json_to_file
 
 from rec_video import rec_video
 from socket_config import socket_init
 from socket_config import socketSendMsg
-from socket_config import data_generate_2
+from socket_config import data_generate_4
 import threading
 
 
@@ -46,16 +44,19 @@ socket_use = args.socket
 # rgb = 1
 show = 1
 log = 1
-socket_use = 1
+# socket_use = 1
 # rec = 1
 
-labelname = []
-data = '404'
-# class_names = ["center_wall", "green_go", "red_stop",
-#                "sidewalk", "speed_limit", "speed_unlimit", "yellow_back"]
+sidewalk_ymax_thresh = 100
+limit_dx_thresh = 100  # 与中轴线距离
+
+data = '404'  # 线程间共享参数
 
 
 def run(work_path):
+
+    global data
+
     # 系统初始化，参数要与创建技能时填写的检验值保持一致
     hilens.init("driving")
 
@@ -67,12 +68,8 @@ def run(work_path):
 
     display = hilens.Display(hilens.HDMI)
 
-    global labelname
-    global data
-
     if rec:
         rec_video(camera, display, show)
-
 
     # 初始化模型
     # -*- coding: utf-8 -*-
@@ -115,25 +112,16 @@ def run(work_path):
                 output = driving_model.infer([img_preprocess.flatten()])
                 # 4. 获取检测结果 #####
                 bboxes = get_result(output, img_w, img_h)
-                # print()
-            # bboxes = label_transform(bboxes)
-            # 5-1. [比赛提交作品用] 将结果输出到json文件中 #####
-            if len(bboxes) > 0:
-                json_bbox = convert_to_json(bboxes, frame_index)
-                json_bbox_list.append(json_bbox)
-            # if bboxes != []:
-            #     print()
-            if socket_use:
-                data = data_generate_2(bboxes)
-            # labelname = [i[4] for i in bboxes]
 
-            # if socket_use:
-            #     # connection, _ = socket_3399.accept()
-            #     if len(connection.recv(1024)) == 0:
-            #         connection, _ = socket_3399.accept()
-            #     labelname = [i[4] for i in bboxes]
-            #     data = socketencode(labelname)
-            #     socketSendMsg(connection, data)  # 传输labelname]
+            # # 5-1. [比赛提交作品用] 将结果输出到json文件中 #####
+            # if len(bboxes) > 0:
+            #     json_bbox = convert_to_json(bboxes, frame_index)
+            #     json_bbox_list.append(json_bbox)
+            # # if bboxes != []:
+            # #     print()
+
+            if socket_use:
+                data = data_generate_4(bboxes)
 
             # 5-2. [调试用] 将结果输出到display #####
             if show:

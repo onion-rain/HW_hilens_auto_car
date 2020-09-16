@@ -6,17 +6,12 @@ import cv2
 import json
 import numpy as np
 
+# 测试视频尺寸(368, 640, 3)
+# hilens kit(720, 1280, 3)
 
-# 交通标志识别模型输入尺寸
-# net_h = 352
-# net_w = 640
-
-# net_h = 640
-# net_w = 640
-
+# 模型输入尺寸
 net_h = 416
 net_w = 416
-
 
 class_names = ["wall", "green", "red", "sidewalk", "limit", "unlimit", "yellow"]
 class_thres = [0.3,    0.8,     0.8,   0.3,        0.8,     0.8,       0.8]
