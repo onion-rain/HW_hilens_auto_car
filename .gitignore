@@ -2,3 +2,5 @@
 *.pb
 *.pyc
 *.cfg
+*.json
+*.txt
