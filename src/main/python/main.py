@@ -43,12 +43,9 @@ socket_use = args.socket
 # pad = 1
 # rgb = 1
 show = 1
-log = 1
-# socket_use = 1
+# log = 1
+socket_use = 1
 # rec = 1
-
-sidewalk_ymax_thresh = 100
-limit_dx_thresh = 100  # 与中轴线距离
 
 data = '404'  # 线程间共享参数
 

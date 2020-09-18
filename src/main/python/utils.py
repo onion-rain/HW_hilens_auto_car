@@ -279,7 +279,11 @@ def draw_boxes(img_data, bboxes):
         y_max = int(bbox[3])
         cv2.rectangle(img_data, (x_min, y_min),
                       (x_max, y_max), colors[label], thickness)
-        cv2.putText(img_data, class_names[label]+"_{:.2f}".format(conf), (x_min, y_min+25),
+        cv2.putText(img_data, "{:.2f},{:.2f}".format(x_min, x_max), (x_min, y_min-50),
+                    text_font, font_scale, colors[label], thickness)
+        cv2.putText(img_data, "{:.2f},{:.2f}".format(y_min, y_max), (x_min, y_min-25),
+                    text_font, font_scale, colors[label], thickness)
+        cv2.putText(img_data, class_names[label]+"_{:.2f},{:.2f}".format(conf, (x_min + x_max)/2), (x_min, y_min),
                     text_font, font_scale, colors[label], thickness)
         labelName = class_names[label]
 
