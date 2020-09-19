@@ -43,7 +43,7 @@ socket_use = args.socket
 # pad = 1
 # rgb = 1
 show = 1
-# log = 1
+log = 1
 socket_use = 1
 # rec = 1
 
@@ -70,12 +70,9 @@ def run(work_path):
 
     # 初始化模型
     # -*- coding: utf-8 -*-
+    # model_path = os.path.join(work_path, 'model/yolo3_darknet53_new_raw3_4_terminal_t.om')
     # model_path = os.path.join(work_path, 'model/yolo3_darknet53_new_raw3_rm_terminal_t.om')
     model_path = os.path.join(work_path, 'model/yolo3_darknet53_new_raw3_terminal_t.om')
-    # model_path = os.path.join(work_path, 'model/yolo3_darknet53_new_raw2_terminal_t.om')
-    # model_path = os.path.join(work_path, 'model/yolo3_darknet53_new_raw1_rhmc_terminal_t.om')
-    # model_path = os.path.join(work_path, 'model/yolo3_darknet53_new_raw0_rhmc_terminal_t.om')
-    # model_path = os.path.join(work_path, 'model/yolo3_darknet53_new_raw0_terminal_t.om')
 
     driving_model = hilens.Model(model_path)
 
@@ -161,6 +158,7 @@ def socket_run():  # 修改了socket_accept函数
             socketSendMsg(connection, data)
         except ConnectionResetError:
             # connection = socket_accept(socket_3399, labelname)
+            socket_3399.listen()
             connection, _ = socket_3399.accept()
             socketSendMsg(connection, data)
 

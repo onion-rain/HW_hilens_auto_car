@@ -204,8 +204,9 @@ def data_generate_4(bbox):
     label_attr = []
     for i in range(len(label_names)):
         label_name = label_names[i]
-        if label_name == 'sidewalk':
-            label_attr.append((bbox[i][:3]))  # 如果检测到人行道，返回人行道的xyxy
+        if label_name in ['sidewalk', 'speed_limit', 'speed_unlimit']:
+        # if label_name == 'sidewalk':
+            label_attr.append((bbox[i][:4]))  # 如果检测到人行道，限速，解禁速，返回xyxy
         else:
             label_attr.append((bbox[i][0]+bbox[i][2])/2)  # 当前版本如果检测到其他，返回检测物体的x中心
     data = dict(zip(label_names, label_attr))  # 形成一个信息字典，e.g {'green_go':255, 'sidewalk':750}
