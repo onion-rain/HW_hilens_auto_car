@@ -14,7 +14,7 @@ net_h = 416
 net_w = 416
 
 class_names = ["wall", "green", "red", "sidewalk", "limit", "unlimit", "yellow"]
-class_thres = [0.6,    0.7,     0.7,   0.5,        0.4,     0.4,       0.7]
+class_thres = [0.6,    0.7,     0.7,   0.5,        0.4,     0.4,       0.3]
 class_num = len(class_names)
 
 # 检测框的输出阈值、NMS筛选阈值

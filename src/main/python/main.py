@@ -71,8 +71,9 @@ def run(work_path):
     # 初始化模型
     # -*- coding: utf-8 -*-
     # model_path = os.path.join(work_path, 'model/yolo3_darknet53_new_raw3_4_terminal_t.om')
-    # model_path = os.path.join(work_path, 'model/yolo3_darknet53_new_raw3_rm_terminal_t.om')
-    model_path = os.path.join(work_path, 'model/yolo3_darknet53_new_raw3_terminal_t.om')
+    # model_path = os.path.join(work_path, 'model/yolo3_darknet53_new_raw3_terminal_t.om')
+    # model_path = os.path.join(work_path, 'model/yolo3_darknet53_new_raw3_4_sup_terminal_t.om')
+    model_path = os.path.join(work_path, 'model/yolo3_darknet53_new_raw3_4_sup_cut_terminal_t.om')
 
     driving_model = hilens.Model(model_path)
 

@@ -197,7 +197,7 @@ def data_generate_4(bbox):
     send_data = 0
     data = 0
     if bbox == []:
-        data = '404'
+        data = 'zzz'
         return data
 
     label_names = [class_names[i[4]] for i in bbox]

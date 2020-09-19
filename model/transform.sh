@@ -1,6 +1,6 @@
 MODEL_NAME=yolo3_darknet53.pb
 MODEL_CFG=insert_op_conf.cfg
-OUTPUT_NAME=yolo3_darknet53_new_raw3_4_terminal_t
+OUTPUT_NAME=yolo3_darknet53_new_raw3_4_sup_cut_terminal_t
 
 MODEL_INPUT='images:1,416,416,3'
 
