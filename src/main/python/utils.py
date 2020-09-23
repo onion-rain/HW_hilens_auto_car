@@ -13,8 +13,9 @@ import numpy as np
 net_h = 416
 net_w = 416
 
-class_names = ["wall", "green", "red", "sidewalk", "limit", "unlimit", "yellow"]
-class_thres = [0.6,    0.7,     0.7,   0.5,        0.4,     0.4,       0.3]
+# class_names = ["slope"]
+class_names = ["wall", "green", "red", "sidewalk", "slope", "limit", "unlimit", "yellow"]
+class_thres = [0.6,    0.7,     0.7,   0.4,        0.3,     0.4,     0.7,       0.3]
 class_num = len(class_names)
 
 # 检测框的输出阈值、NMS筛选阈值
@@ -29,7 +30,7 @@ anchors_3 = np.array([[116, 90], [156, 198], [163, 326]]) / stride_list[2]
 anchor_list = [anchors_1, anchors_2, anchors_3]
 
 colors = [(127, 127, 127), (0, 255, 0), (0, 0, 255),
-          (255, 255, 0), (255, 0, 255), (255, 0, 0), (0, 255, 255)]
+          (255, 255, 0), (255, 255, 255), (255, 0, 255), (255, 0, 0), (0, 255, 255)]
 
 
 # 图片预处理：缩放到模型输入尺寸
@@ -199,6 +200,8 @@ def decode_bbox_with_pad(conv_output, anchors, img_w, img_h, x_scale, y_scale, s
     pred[:, 4] = pred[:, 4] * pred[:, 5:].max(1)
     pred = pred[pred[:, 4] >= conf_threshold]
     pred[:, 5] = np.argmax(pred[:, 5:], axis=-1)
+
+    return pred
 
     all_boxes = [[] for ix in range(class_num)]
     for ix in range(pred.shape[0]):

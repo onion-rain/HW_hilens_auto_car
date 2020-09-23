@@ -47,7 +47,7 @@ log = 1
 socket_use = 1
 # rec = 1
 
-data = '404'  # 线程间共享参数
+data = 'zzz'  # 线程间共享参数
 
 
 def run(work_path):
@@ -61,7 +61,6 @@ def run(work_path):
     # hilens studio中VideoCapture如果不填写参数，则默认读取test/camera0.mp4文件，
     # 在hilens kit中不填写参数则读取本地摄像头
     camera = hilens.VideoCapture()
-    # camera = hilens.VideoCapture("test/new.mp4")
 
     display = hilens.Display(hilens.HDMI)
 
@@ -70,10 +69,7 @@ def run(work_path):
 
     # 初始化模型
     # -*- coding: utf-8 -*-
-    # model_path = os.path.join(work_path, 'model/yolo3_darknet53_new_raw3_4_terminal_t.om')
-    # model_path = os.path.join(work_path, 'model/yolo3_darknet53_new_raw3_terminal_t.om')
-    # model_path = os.path.join(work_path, 'model/yolo3_darknet53_new_raw3_4_sup_terminal_t.om')
-    model_path = os.path.join(work_path, 'model/yolo3_darknet53_new_raw3_4_sup_cut_terminal_t.om')
+    model_path = os.path.join(work_path, 'model/yolo3_darknet53_raw3_4_sup_slope_terminal_t.om')
 
     driving_model = hilens.Model(model_path)
 
