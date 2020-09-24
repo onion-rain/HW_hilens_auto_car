@@ -44,7 +44,7 @@ socket_use = args.socket
 # rgb = 1
 show = 1
 log = 1
-socket_use = 1
+# socket_use = 1
 # rec = 1
 
 data = 'zzz'  # 线程间共享参数
@@ -161,8 +161,6 @@ def socket_run():  # 修改了socket_accept函数
 
 
 def my_main():
-    # thread1 = threading.Thread(target=run, args=(os.getcwd(), ))
-    # thread1.start()
     if socket_use:
         thread2 = threading.Thread(target=socket_run)
         thread2.start()

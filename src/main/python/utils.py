@@ -4,6 +4,7 @@
 
 import cv2
 import json
+import math
 import numpy as np
 
 # 测试视频尺寸(368, 640, 3)
@@ -15,7 +16,7 @@ net_w = 416
 
 # class_names = ["slope"]
 class_names = ["wall", "green", "red", "sidewalk", "slope", "limit", "unlimit", "yellow"]
-class_thres = [0.6,    0.7,     0.7,   0.4,        0.3,     0.4,     0.7,       0.3]
+class_thres = [0.4,    0.7,     0.7,   0.4,        0.3,     0.4,     0.7,       0.3]
 class_num = len(class_names)
 
 # 检测框的输出阈值、NMS筛选阈值
@@ -74,6 +75,48 @@ def overlap(x1, x2, x3, x4):
     return right - left
 
 
+def bbox_iou(box1, box2, x1y1x2y2=True, GIoU=False, DIoU=False, CIoU=False):
+    """Returns the IoU of box1 to box2. box1 is 4, box2 is nx4"""
+    if not x1y1x2y2:
+        # Transform from center and width to exact coordinates
+        b1_x1, b1_x2 = box1[0] - box1[2] / 2, box1[0] + box1[2] / 2
+        b1_y1, b1_y2 = box1[1] - box1[3] / 2, box1[1] + box1[3] / 2
+        b2_x1, b2_x2 = box2[0] - box2[2] / 2, box2[0] + box2[2] / 2
+        b2_y1, b2_y2 = box2[1] - box2[3] / 2, box2[1] + box2[3] / 2
+    else:
+        # Get the coordinates of bounding boxes
+        b1_x1, b1_y1, b1_x2, b1_y2 = box1[0], box1[1], box1[2], box1[3]
+        b2_x1, b2_y1, b2_x2, b2_y2 = box2[0], box2[1], box2[2], box2[3]
+
+    # Intersection area
+    inter = max(0, (min(b1_x2, b2_x2) - max(b1_x1, b2_x1))) * \
+            max(0, (min(b1_y2, b2_y2) - max(b1_y1, b2_y1)))
+
+    # Union Area
+    w1, h1 = b1_x2 - b1_x1, b1_y2 - b1_y1
+    w2, h2 = b2_x2 - b2_x1, b2_y2 - b2_y1
+    union = (w1 * h1 + 1e-16) + w2 * h2 - inter
+
+    iou = inter / union  # iou
+    if GIoU or DIoU or CIoU:
+        cw = max(b1_x2, b2_x2) - min(b1_x1, b2_x1)  # convex (smallest enclosing box) width
+        ch = max(b1_y2, b2_y2) - min(b1_y1, b2_y1)  # convex height
+        if GIoU:  # Generalized IoU https://arxiv.org/pdf/1902.09630.pdf
+            c_area = cw * ch + 1e-16  # convex area
+            return iou - (c_area - union) / c_area  # GIoU
+        if DIoU or CIoU:  # Distance or Complete IoU https://arxiv.org/abs/1911.08287v1
+            # convex diagonal squared
+            c2 = cw ** 2 + ch ** 2 + 1e-16
+            # centerpoint distance squared
+            rho2 = ((b2_x1 + b2_x2) - (b1_x1 + b1_x2)) ** 2 / 4 + ((b2_y1 + b2_y2) - (b1_y1 + b1_y2)) ** 2 / 4
+            if DIoU:
+                return iou - rho2 / c2  # DIoU
+            elif CIoU:  # https://github.com/Zzh-tju/DIoU-SSD-pytorch/blob/master/utils/box/box_utils.py#L47
+                v = (4 / math.pi ** 2) * pow(math.atan(w2 / h2) - math.atan(w1 / h1), 2)
+                alpha = v / (1 - iou + v)
+                return iou - (rho2 / c2 + v * alpha)  # CIoU
+    return iou
+
 # 计算两个矩形框的IOU
 def cal_iou(box1, box2):
     w = overlap(box1[0], box1[2], box2[0], box2[2])
@@ -95,21 +138,6 @@ def apply_nms(all_boxes, iou_thres, cls_thres):
         cls = cls+1 if cls+1 < 7 else 0
         if cls_bboxes == []:
             continue
-        # else:
-        #     if cls == 0:
-        #         pass
-        #     elif cls == 1:
-        #         pass
-        #     elif cls == 2:
-        #         pass
-        #     elif cls == 3:
-        #         pass
-        #     elif cls == 4:
-        #         pass
-        #     elif cls == 5:
-        #         pass
-        #     elif cls == 6:
-        #         pass
         conf_thres = cls_thres[cls]
         keep_boxes = [box for box in cls_bboxes if box[-1] > conf_thres]
         if len(keep_boxes) < len(cls_bboxes):
@@ -125,7 +153,8 @@ def apply_nms(all_boxes, iou_thres, cls_thres):
                 if j in p:
                     continue
                 box = sorted_boxes[j]
-                iou = cal_iou(box, truth)
+                # iou = cal_iou(box, truth)
+                iou = bbox_iou(box, truth, x1y1x2y2=True, DIoU=True)
                 if iou >= iou_thres:
                     p[j] = 1
 
