@@ -16,7 +16,7 @@ net_w = 416
 
 # class_names = ["slope"]
 class_names = ["wall", "green", "red", "sidewalk", "slope", "limit", "unlimit", "yellow"]
-class_thres = [0.4,    0.7,     0.7,   0.4,        0.3,     0.4,     0.7,       0.3]
+class_thres = [0.3,    0.7,     0.7,   0.4,        0.3,     0.4,     0.7,       0.3]
 class_num = len(class_names)
 
 # 检测框的输出阈值、NMS筛选阈值
